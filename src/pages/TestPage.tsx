@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useStreamPayContract } from "../hooks/useContract";
+import { usePay-StylusContract } from "../hooks/useContract";
 import { useWallet } from "../hooks/useWallet";
 import { Card, CardContent, CardHeader } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
@@ -14,7 +14,7 @@ export const TestPage: React.FC = () => {
     getUserBalance,
     isProviderRegistered,
     isLoading,
-  } = useStreamPayContract();
+  } = usePay-StylusContract();
 
   const { isConnected, address } = useWallet();
   const [plans, setPlans] = useState<any[]>([]);
@@ -113,7 +113,7 @@ export const TestPage: React.FC = () => {
     <div className="max-w-4xl mx-auto p-8 space-y-6">
       <Card>
         <CardHeader>
-          <h1 className="text-2xl font-bold">StreamPay Test Page</h1>
+          <h1 className="text-2xl font-bold">Pay-Stylus Test Page</h1>
           <p className="text-gray-600">Test all contract functions</p>
         </CardHeader>
         <CardContent>

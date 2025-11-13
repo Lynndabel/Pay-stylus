@@ -5,12 +5,12 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { StatsCard } from '../components/StatsCard';
-import { useStreamPayContract } from '../hooks/useContract';
+import { usePay-StylusContract } from '../hooks/useContract';
 import { useWallet } from '../hooks/useWallet';
 import { EscrowBalance } from '../types';
 
 export const Wallet: React.FC = () => {
-  const { Deposite, getUserBalance } = useStreamPayContract();
+  const { Deposite, getUserBalance } = usePay-StylusContract();
   const { isConnected, address } = useWallet();
   const [balance, setBalance] = useState<EscrowBalance | null>(null);
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);

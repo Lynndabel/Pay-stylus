@@ -1,4 +1,4 @@
-# StreamPay Contract Deployment Guide
+# Pay-Stylus Contract Deployment Guide
 
 ## 🎯 Complete Step-by-Step Deployment Process
 
@@ -43,7 +43,7 @@ foundryup
 
 ### Step 1: Navigate to Contract Directory
 ```bash
-cd ~/StreamPay-arbitrum/smart-contract
+cd ~/Pay-Stylus-arbitrum/smart-contract
 ```
 
 ### Step 2: Verify Contract Compiles

@@ -1,7 +1,7 @@
-# StreamPay GraphQL Subgraph
+# Pay-Stylus GraphQL Subgraph
 
 ## 🚀 Overview
-GraphQL subgraph for StreamPay provider analytics and transaction tracking.
+GraphQL subgraph for Pay-Stylus provider analytics and transaction tracking.
 
 ## 📋 Subgraph Details
 - **Network**: Arbitrum Sepolia

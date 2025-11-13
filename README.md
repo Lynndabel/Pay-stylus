@@ -1,4 +1,4 @@
-# StreamPay - Web3 Subscription Payments Platform   ( Drop To Bottom for Manual Smart Contract Testing ) 
+# Pay-Stylus - Web3 Subscription Payments Platform   ( Drop To Bottom for Manual Smart Contract Testing ) 
 
 A modern, minimal React frontend for managing trustless recurring payments on Web3.
 
@@ -60,7 +60,7 @@ Replace the placeholder hooks in `src/hooks/useContract.ts` with real contract c
 
 Example integration:
 ```typescript
-// Replace placeholder in useStreamPayContract hook
+// Replace placeholder in usePay-StylusContract hook
 const createPlan = async (price: string) => {
   const { writeContract } = useWriteContract();
   return writeContract({
@@ -128,7 +128,7 @@ VITE_WALLET_CONNECT_PROJECT_ID=...
 
 ## Key Integration Points
 
-- **Contract Hooks**: All contract interactions are centralized in `useStreamPayContract`
+- **Contract Hooks**: All contract interactions are centralized in `usePay-StylusContract`
 - **Mock API**: Replace with real API endpoints in `mockApi.ts`
 - **Types**: Extend types in `src/types/index.ts` as needed
 - **Toast Notifications**: Already configured for success/error feedback

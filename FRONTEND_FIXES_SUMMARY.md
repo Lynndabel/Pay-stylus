@@ -1,4 +1,4 @@
-# StreamPay Frontend Fixes Summary
+# Pay-Stylus Frontend Fixes Summary
 
 ## Issues Identified and Fixed
 

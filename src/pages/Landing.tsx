@@ -44,7 +44,7 @@ export const Landing: React.FC = () => {
       <section className="pt-20 pb-16 bg-gradient-to-b from-blue-50 to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-            StreamPay: Trustless
+            Pay-Stylus: Trustless
             <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
               Recurring Payments
@@ -87,7 +87,7 @@ export const Landing: React.FC = () => {
               Built for the Future of Payments
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              StreamPay leverages blockchain technology to create a more transparent, 
+              Pay-Stylus leverages blockchain technology to create a more transparent, 
               efficient, and fair payment ecosystem for creators and subscribers.
             </p>
           </div>
@@ -112,7 +112,7 @@ export const Landing: React.FC = () => {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-3xl font-bold text-gray-900 mb-6">
-                Why Choose StreamPay?
+                Why Choose Pay-Stylus?
               </h2>
               <ul className="space-y-4">
                 {benefits.map((benefit, index) => (
@@ -126,7 +126,7 @@ export const Landing: React.FC = () => {
             <div className="bg-white p-8 rounded-2xl shadow-lg">
               <h3 className="text-xl font-semibold text-gray-900 mb-4">Ready to Start?</h3>
               <p className="text-gray-600 mb-6">
-                Join the growing community of creators and businesses using StreamPay 
+                Join the growing community of creators and businesses using Pay-Stylus 
                 for their subscription needs.
               </p>
               <div className="space-y-3">
@@ -149,7 +149,7 @@ export const Landing: React.FC = () => {
             <div className="w-6 h-6 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-xs">S</span>
             </div>
-            <span className="text-lg font-bold">StreamPay</span>
+            <span className="text-lg font-bold">Pay-Stylus</span>
           </div>
           <p className="text-gray-400 text-sm">
             The future of subscription payments is decentralized.

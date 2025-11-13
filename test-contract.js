@@ -11,7 +11,7 @@ const contractABI = JSON.parse(
 );
 
 async function testContract() {
-  console.log("🔍 Testing StreamPay Contract...\n");
+  console.log("🔍 Testing Pay-Stylus Contract...\n");
 
   // Connect to provider
   const provider = new ethers.JsonRpcProvider(RPC_URL);

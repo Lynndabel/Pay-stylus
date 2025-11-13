@@ -1,13 +1,13 @@
 // Check localStorage and subscription status
-console.log("=== StreamPay Storage Check ===");
+console.log("=== Pay-Stylus Storage Check ===");
 
 // Check localStorage keys
 const keys = Object.keys(localStorage);
 console.log("📦 LocalStorage keys:", keys);
 
-// Check specific StreamPay keys
-const subscriptions = localStorage.getItem("StreamPaySubscriptions");
-const walletData = localStorage.getItem("StreamPayWallet");
+// Check specific Pay-Stylus keys
+const subscriptions = localStorage.getItem("Pay-StylusSubscriptions");
+const walletData = localStorage.getItem("Pay-StylusWallet");
 
 console.log("💳 Subscriptions data:", subscriptions);
 console.log("🔐 Wallet data:", walletData);

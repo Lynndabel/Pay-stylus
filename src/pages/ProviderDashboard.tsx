@@ -5,14 +5,14 @@ import { PlanCard } from "../components/PlanCard";
 import { EarningsChart } from "../components/EarningsChart";
 import { Card, CardContent, CardHeader } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
-import { useStreamPayContract } from "../hooks/useContract";
+import { usePay-StylusContract } from "../hooks/useContract";
 import { useWallet } from "../hooks/useWallet";
 import { mockApi } from "../services/mockApi";
 import { Plan } from "../types";
 
 export const ProviderDashboard: React.FC = () => {
   const { deactivatePlan, withdrawEarnings, isLoading, isProviderRegistered, getAllPlansWithDetails } =
-    useStreamPayContract();
+    usePay-StylusContract();
   const { address } = useWallet();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loadingPlans, setLoadingPlans] = useState(true);

@@ -16,7 +16,7 @@ declare global {
   }
 }
 
-export const useStreamPayContract = () => {
+export const usePay-StylusContract = () => {
   const { isConnected, address } = useWallet();
   const [isLoading, setIsLoading] = useState(false);
 

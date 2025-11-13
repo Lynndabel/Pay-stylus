@@ -1,6 +1,6 @@
-# Deploying StreamPay to Vercel
+# Deploying Pay-Stylus to Vercel
 
-This guide will help you deploy your StreamPay frontend to Vercel.
+This guide will help you deploy your Pay-Stylus frontend to Vercel.
 
 ## Prerequisites
 
@@ -64,7 +64,7 @@ This guide will help you deploy your StreamPay frontend to Vercel.
    - Set up and deploy? **Yes**
    - Which scope? **Your account**
    - Link to existing project? **No** (first time) or **Yes** (subsequent)
-   - Project name? **streampay** (or your choice)
+   - Project name? **Pay-Stylus** (or your choice)
    - Directory? **./** (current directory)
    - Override settings? **No**
 

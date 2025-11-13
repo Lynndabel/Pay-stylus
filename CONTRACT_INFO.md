@@ -1,4 +1,4 @@
-# StreamPay Production Contract Information
+# Pay-Stylus Production Contract Information
 
 ## 🚀 Current Deployment
 

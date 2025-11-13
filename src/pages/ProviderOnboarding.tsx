@@ -5,14 +5,14 @@ import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { Select } from "../components/ui/Select";
 import { Card, CardContent, CardHeader } from "../components/ui/Card";
-import { useStreamPayContract } from "../hooks/useContract";
+import { usePay-StylusContract } from "../hooks/useContract";
 import { mockApi } from "../services/mockApi";
 import { useWallet } from "../hooks/useWallet";
 
 export const ProviderOnboarding: React.FC = () => {
   const navigate = useNavigate();
   const { registerProvider, createPlan, isProviderRegistered } =
-    useStreamPayContract();
+    usePay-StylusContract();
   const { isConnected, address } = useWallet();
   const [alreadyRegistered, setAlreadyRegistered] = useState<boolean>(false);
   const [checkingRegistration, setCheckingRegistration] =

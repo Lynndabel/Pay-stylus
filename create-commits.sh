@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Script to create 50 meaningful commits for the StreamPay project
+# Script to create 50 meaningful commits for the Pay-Stylus project
 
-echo "Creating 50 commits for StreamPay project..."
+echo "Creating 50 commits for Pay-Stylus project..."
 
 # Commit 1: Initial project structure
 git add .gitignore README.md

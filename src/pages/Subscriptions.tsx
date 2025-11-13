@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Calendar, AlertCircle, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardHeader } from "../components/ui/Card";
-import { useStreamPayContract } from "../hooks/useContract";
+import { usePay-StylusContract } from "../hooks/useContract";
 import { mockApi } from "../services/mockApi";
 import { Subscription, PaymentHistory } from "../types";
 import { useWallet } from "../hooks/useWallet";
@@ -16,7 +16,7 @@ import {
 
 export const Subscriptions: React.FC = () => {
   const { cancelSubscription, isLoading, getUserBalance, Deposite } =
-    useStreamPayContract();
+    usePay-StylusContract();
   const { isConnected } = useWallet();
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [paymentHistory, setPaymentHistory] = useState<PaymentHistory[]>([]);
