@@ -6,43 +6,48 @@ import {
   CONTRACT_FUNCTIONS,
   CONTRACT_ERRORS,
 } from "../contracts/contractconfig";
-import { useAccount, useWalletClient } from "wagmi";
 import { Plan } from "../types";
+import { useWallet } from "./useWallet";
+import { appKit } from "../lib/reown";
 
 // Add type declaration for window.ethereum
 declare global {
   interface Window {
-    ethereum?: any;
+    ethereum?: Record<string, unknown>;
   }
 }
 
 export const useStreamPayContract = () => {
-  const { isConnected, address } = useAccount();
+  const { isConnected, address } = useWallet();
   const [isLoading, setIsLoading] = useState(false);
-  const { data: walletClient } = useWalletClient();
 
-  const getEip1193Provider = () => {
-    if (walletClient && (walletClient as any).transport?.request) {
-      return {
-        request: (args: any) => (walletClient as any).transport.request(args),
-      } as any;
+  const getEip1193Provider = async () => {
+    if (typeof appKit?.getWalletProvider === "function") {
+      const provider = await appKit.getWalletProvider();
+      if (provider) {
+        return provider as any;
+      }
     }
-    if (typeof window !== "undefined" && (window as any).ethereum) {
-      return (window as any).ethereum;
+
+    if (typeof window !== "undefined" && window.ethereum) {
+      return window.ethereum;
     }
+
     throw new Error("No wallet found");
   };
 
   const getProvider = async () => {
-    const eip1193 = getEip1193Provider();
+    const eip1193 = await getEip1193Provider();
     return new ethers.BrowserProvider(eip1193 as any);
   };
 
   // Initialize provider and contract
   const getContract = async () => {
-    if (!isConnected) throw new Error(CONTRACT_ERRORS.Unauthorized);
+    if (!isConnected || !address) throw new Error(CONTRACT_ERRORS.Unauthorized);
     console.log("🔗 Initializing blockchain connection...");
-    const provider = await getProvider();
+
+    const eip1193 = await getEip1193Provider();
+    const provider = new ethers.BrowserProvider(eip1193 as any);
     const network = await provider.getNetwork();
     console.log(
       "📡 Connected to network:",
@@ -54,12 +59,11 @@ export const useStreamPayContract = () => {
     if (network.chainId !== BigInt(CONTRACT_CONFIG.NETWORK_ID)) {
       console.log("🔄 Wrong network detected, attempting to switch...");
       try {
-        await (getEip1193Provider() as any).request({
+        await (eip1193 as any).request?.({
           method: "wallet_switchEthereumChain",
-          params: [{ chainId: `0x${CONTRACT_CONFIG.NETWORK_ID.toString(16)}` }], // Convert to hex
+          params: [{ chainId: `0x${CONTRACT_CONFIG.NETWORK_ID.toString(16)}` }],
         });
         console.log("✅ Network switched successfully");
-        // Retry getting the network
         const newNetwork = await provider.getNetwork();
         console.log(
           "📡 Now connected to:",
@@ -71,7 +75,7 @@ export const useStreamPayContract = () => {
         if (switchError.code === 4902) {
           console.log("🔧 Network not found, adding Arbitrum Sepolia...");
           try {
-            await (getEip1193Provider() as any).request({
+            await (eip1193 as any).request?.({
               method: "wallet_addEthereumChain",
               params: [
                 {
@@ -91,13 +95,13 @@ export const useStreamPayContract = () => {
           } catch (addError) {
             console.error("❌ Failed to add network:", addError);
             throw new Error(
-              "Please manually add Arbitrum Sepolia network to MetaMask"
+              "Please manually add Arbitrum Sepolia network to your wallet"
             );
           }
         } else {
           console.error("❌ Failed to switch network:", switchError);
           throw new Error(
-            `Please switch to Arbitrum Sepolia (Chain ID: ${CONTRACT_CONFIG.NETWORK_ID}) in MetaMask`
+            `Please switch to Arbitrum Sepolia (Chain ID: ${CONTRACT_CONFIG.NETWORK_ID}) in your wallet`
           );
         }
       }
@@ -107,7 +111,6 @@ export const useStreamPayContract = () => {
     const signerAddress = await signer.getAddress();
     console.log("👤 Signer address:", signerAddress);
 
-    // Verify the contract exists
     const code = await provider.getCode(CONTRACT_CONFIG.CONTRACT_ADDRESS);
     if (code === "0x") {
       throw new Error("Contract not found at the specified address");
@@ -501,7 +504,7 @@ export const useStreamPayContract = () => {
   // Fetch all plans with their details from contract events
   const getAllPlansWithDetails = async () => {
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum as any);
+      const provider = new ethers.JsonRpcProvider(CONTRACT_CONFIG.NETWORK_RPC_URL);
       const contract = new ethers.Contract(
         CONTRACT_CONFIG.CONTRACT_ADDRESS,
         CONTRACT_CONFIG.CONTRACT_ABI,

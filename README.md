@@ -74,15 +74,25 @@ const createPlan = async (price: string) => {
 
 ### Wallet Integration
 
-Replace the mock wallet hook in `src/hooks/useWallet.ts` with Wagmi/RainbowKit:
+The frontend ships with Reown (WalletConnect AppKit) preconfigured. To enable it:
 
-```typescript
-// Install and configure
-npm install @rainbow-me/rainbowkit wagmi viem
+```bash
+npm install @reown/appkit @reown/appkit-react @reown/appkit/networks viem
+```
 
-// Use wagmi hooks
-const { address, isConnected } = useAccount();
-const { connect } = useConnect();
+Set the WalletConnect project ID in `.env`:
+
+```
+VITE_WALLETCONNECT_PROJECT_ID=your_project_id
+```
+
+Then use the provided `ConnectButton` component or `useWallet` hook:
+
+```tsx
+import { ConnectButton } from "@reown/appkit/react";
+import { useWallet } from "../hooks/useWallet";
+
+const { address, isConnected } = useWallet();
 ```
 
 ### API Integration
@@ -98,9 +108,9 @@ Replace `src/services/mockApi.ts` with real API calls:
 Create a `.env` file with:
 ```
 VITE_CONTRACT_ADDRESS=0x...
-VITE_CHAIN_ID=1
+VITE_CHAIN_ID=421614
 VITE_INFURA_PROJECT_ID=...
-VITE_WALLET_CONNECT_PROJECT_ID=...
+VITE_WALLETCONNECT_PROJECT_ID=...
 ```
 
 ## Getting Started

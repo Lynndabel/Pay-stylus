@@ -118,3 +118,4 @@ If contract fetch fails:
 
 The frontend is now fully integrated with the deployed contract and ready for use!
 
+

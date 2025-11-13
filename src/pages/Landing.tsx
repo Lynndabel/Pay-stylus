@@ -2,12 +2,11 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Shield, Zap, Wallet, CheckCircle, Sparkles, TrendingUp, Lock } from 'lucide-react';
 import { Button } from '../components/ui/Button';
-import { useAccount, useConnect, useDisconnect } from 'wagmi';
+import { ConnectButton } from '@reown/appkit/react';
+import { useWallet } from '../hooks/useWallet';
 
 export const Landing: React.FC = () => {
-  const { address, isConnected } = useAccount();
-  const { connect, connectors, isPending } = useConnect();
-  const { disconnect } = useDisconnect();
+  const { address, isConnected } = useWallet();
 
   const features = [
     {
@@ -82,24 +81,10 @@ export const Landing: React.FC = () => {
           
           <div className='flex justify-center'>
             <div className="p-4 bg-white/60 backdrop-blur-sm rounded-2xl border border-cyan-200 shadow-lg flex items-center gap-3">
-              {isConnected ? (
-                <>
-                  <span className="text-sm text-gray-700">{address?.slice(0,6)}...{address?.slice(-4)}</span>
-                  <button
-                    onClick={() => disconnect()}
-                    className="px-3 py-2 text-sm font-semibold rounded-md bg-gradient-to-r from-cyan-600 to-teal-600 text-white hover:from-cyan-700 hover:to-teal-700"
-                  >
-                    Disconnect
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => connect({ connector: connectors[0] })}
-                  className="px-3 py-2 text-sm font-semibold rounded-md border-2 border-cyan-600 text-cyan-700 hover:bg-cyan-50"
-                >
-                  Connect Wallet
-                </button>
+              {isConnected && (
+                <span className="text-sm text-gray-700">{address?.slice(0,6)}...{address?.slice(-4)}</span>
               )}
+              <ConnectButton />
             </div>
           </div>
           

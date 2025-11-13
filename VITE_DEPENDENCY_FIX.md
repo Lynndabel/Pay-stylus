@@ -74,3 +74,4 @@ Moved `vite` and `@vitejs/plugin-react` from `devDependencies` to `dependencies`
 
 **This should fix the build issue!** Vite will now be installed as a regular dependency, ensuring it's available during the build process. 🚀
 
+

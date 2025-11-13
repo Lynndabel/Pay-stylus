@@ -65,3 +65,4 @@ vite v5.x.x building for production...
 
 **This should be the final fix!** The `npm ci` command ensures all dependencies (including devDependencies like vite) are properly installed before the build runs. 🚀
 
+

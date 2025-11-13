@@ -1,8 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Wallet, Menu, X, Zap } from "lucide-react";
-import { useState } from "react";
-import { useAccount, useConnect, useDisconnect } from "wagmi";
+import { Zap, Menu, X } from "lucide-react";
+import { ConnectButton } from "@reown/appkit/react";
+import { useWallet } from "../hooks/useWallet";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -11,9 +11,7 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
-  const { address, isConnected } = useAccount();
-  const { connect, connectors } = useConnect();
-  const { disconnect } = useDisconnect();
+  const { address, isConnected } = useWallet();
 
   const navigation = [
     { name: "Marketplace", href: "/marketplace" },
@@ -36,7 +34,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-teal-500 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg transition-all group-hover:scale-105">
                 <Zap className="w-6 h-6 text-white" />
               </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-cyan-700 to-teal-600 bg-clip-text text-transparent">StreamPay</span>
+              <span className="text-xl font-bold bg-gradient-to-r from-cyan-700 to-teal-600 bg-clip-text text-transparent">
+                StreamPay
+              </span>
             </Link>
 
             {/* Desktop Navigation */}
@@ -56,29 +56,24 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               ))}
             </nav>
 
-            {/* Wallet Connection */}
             <div className="flex items-center gap-2">
-              {isConnected ? (
-                <>
-                  <span className="hidden sm:inline text-sm text-gray-600">{address?.slice(0,6)}...{address?.slice(-4)}</span>
-                  <button
-                    onClick={() => disconnect()}
-                    className="px-3 py-2 text-sm font-semibold rounded-md bg-gradient-to-r from-cyan-600 to-teal-600 text-white hover:from-cyan-700 hover:to-teal-700"
-                  >
-                    Disconnect
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => {
-                    const wc = connectors.find(c => c.id === 'walletConnect' || c.name.toLowerCase().includes('walletconnect'));
-                    connect({ connector: wc ?? connectors[0] });
-                  }}
-                  className="px-3 py-2 text-sm font-semibold rounded-md border-2 border-cyan-600 text-cyan-700 hover:bg-cyan-50"
-                >
-                  Connect Wallet
-                </button>
+              {/* Mobile Menu Toggle */}
+              <button
+                type="button"
+                className="md:hidden p-2 rounded-md text-gray-600 hover:text-cyan-600 hover:bg-cyan-50"
+                onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+                aria-label="Toggle navigation"
+              >
+                {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+
+              {/* Wallet Connection */}
+              {isConnected && (
+                <span className="hidden sm:inline text-sm text-gray-600">
+                  {address?.slice(0, 6)}...{address?.slice(-4)}
+                </span>
               )}
+              <ConnectButton />
             </div>
           </div>
 

@@ -37,6 +37,7 @@ This guide will help you deploy your Pay-Stylus frontend to Vercel.
      - `VITE_CONTRACT_ADDRESS` (optional)
      - `VITE_RPC_URL` (optional)
      - `VITE_NETWORK_ID` (optional)
+     - `VITE_WALLETCONNECT_PROJECT_ID` (required for Reown/AppKit)
 
 5. **Deploy**
    - Click "Deploy"
@@ -199,4 +200,5 @@ Vercel automatically:
 **Your app will be live at**: `https://your-project-name.vercel.app`
 
 Happy deploying! 🚀
+
 

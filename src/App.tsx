@@ -10,28 +10,12 @@ import { Wallet } from "./pages/Wallet";
 import { Subscriptions } from "./pages/Subscriptions";
 import SubscriptionTracker from "./components/SubscriptionTracker";
 import { TestPage } from "./pages/TestPage";
-import { WagmiConfig, createConfig } from "wagmi";
-import { arbitrumSepolia } from "wagmi/chains";
-import { http } from "viem";
-import { injected } from "wagmi/connectors";
-import { walletConnect } from "wagmi/connectors";
+import { AppKitProvider } from "@reown/appkit/react";
+import { appKit } from "./lib/reown";
 
 function App() {
-  const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID as string;
-
-  const config = createConfig({
-    chains: [arbitrumSepolia],
-    transports: {
-      [arbitrumSepolia.id]: http("https://arb-sepolia.g.alchemy.com/v2/sriH8r9wrKXR8Gz9faKsm"),
-    },
-    connectors: [
-      injected({ shimDisconnect: true }),
-      walletConnect({ projectId, showQrModal: true }),
-    ],
-  });
-
   return (
-    <WagmiConfig config={config}>
+    <AppKitProvider appKit={appKit}>
       <Router>
         <Layout>
           <Routes>
@@ -70,7 +54,7 @@ function App() {
           />
         </Layout>
       </Router>
-    </WagmiConfig>
+    </AppKitProvider>
   );
 }
 
