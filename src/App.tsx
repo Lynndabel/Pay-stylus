@@ -10,66 +10,67 @@ import { Wallet } from "./pages/Wallet";
 import { Subscriptions } from "./pages/Subscriptions";
 import SubscriptionTracker from "./components/SubscriptionTracker";
 import { TestPage } from "./pages/TestPage";
-import {
-  PushUniversalWalletProvider,
-  PushUniversalAccountButton,
-  PushUI,
-} from "@pushchain/ui-kit";
+import { WagmiConfig, createConfig } from "wagmi";
+import { arbitrumSepolia } from "wagmi/chains";
+import { http } from "viem";
+import { injected } from "wagmi/connectors";
+import { walletConnect } from "wagmi/connectors";
 
 function App() {
-  const walletConfig = {
-    network: PushUI.CONSTANTS.PUSH_NETWORK.TESTNET,
-    login: {
-      email: false,
-      google: false,
-      wallet: {
-        enabled: true,
-      },
-      appPreview: false,
+  const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID as string;
+
+  const config = createConfig({
+    chains: [arbitrumSepolia],
+    transports: {
+      [arbitrumSepolia.id]: http("https://arb-sepolia.g.alchemy.com/v2/sriH8r9wrKXR8Gz9faKsm"),
     },
-  };
+    connectors: [
+      injected({ shimDisconnect: true }),
+      walletConnect({ projectId, showQrModal: true }),
+    ],
+  });
 
   return (
-    <PushUniversalWalletProvider config={walletConfig}>
+    <WagmiConfig config={config}>
       <Router>
         <Layout>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/provider/onboarding" element={<ProviderOnboarding />} />
-          <Route path="/provider" element={<ProviderDashboard />} />
-          <Route path="/marketplace" element={<Marketplace />} />
-          <Route path="/wallet" element={<Wallet />} />
-          <Route path="/subscriptions" element={<Subscriptions />} />
-          <Route path="/tracker" element={<SubscriptionTracker />} />
-          <Route path="/test" element={<TestPage />} />
-        </Routes>
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            duration: 4000,
-            style: {
-              background: "#363636",
-              color: "#fff",
-            },
-            success: {
-              duration: 3000,
-              iconTheme: {
-                primary: "#10b981",
-                secondary: "#fff",
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/provider/onboarding" element={<ProviderOnboarding />} />
+            <Route path="/provider" element={<ProviderDashboard />} />
+            <Route path="/marketplace" element={<Marketplace />} />
+            <Route path="/wallet" element={<Wallet />} />
+            <Route path="/subscriptions" element={<Subscriptions />} />
+            <Route path="/tracker" element={<SubscriptionTracker />} />
+            <Route path="/test" element={<TestPage />} />
+          </Routes>
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: "#363636",
+                color: "#fff",
               },
-            },
-            error: {
-              duration: 5000,
-              iconTheme: {
-                primary: "#ef4444",
-                secondary: "#fff",
+              success: {
+                duration: 3000,
+                iconTheme: {
+                  primary: "#10b981",
+                  secondary: "#fff",
+                },
               },
-            },
-          }}
-        />
-      </Layout>
-    </Router>
-    </PushUniversalWalletProvider>
+              error: {
+                duration: 5000,
+                iconTheme: {
+                  primary: "#ef4444",
+                  secondary: "#fff",
+                },
+              },
+            }}
+          />
+        </Layout>
+      </Router>
+    </WagmiConfig>
   );
 }
 

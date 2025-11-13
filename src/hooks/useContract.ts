@@ -6,7 +6,7 @@ import {
   CONTRACT_FUNCTIONS,
   CONTRACT_ERRORS,
 } from "../contracts/contractconfig";
-import { useWallet } from "./useWallet";
+import { useAccount, useWalletClient } from "wagmi";
 import { Plan } from "../types";
 
 // Add type declaration for window.ethereum
@@ -16,18 +16,33 @@ declare global {
   }
 }
 
-export const usePay-StylusContract = () => {
-  const { isConnected, address } = useWallet();
+export const useStreamPayContract = () => {
+  const { isConnected, address } = useAccount();
   const [isLoading, setIsLoading] = useState(false);
+  const { data: walletClient } = useWalletClient();
+
+  const getEip1193Provider = () => {
+    if (walletClient && (walletClient as any).transport?.request) {
+      return {
+        request: (args: any) => (walletClient as any).transport.request(args),
+      } as any;
+    }
+    if (typeof window !== "undefined" && (window as any).ethereum) {
+      return (window as any).ethereum;
+    }
+    throw new Error("No wallet found");
+  };
+
+  const getProvider = async () => {
+    const eip1193 = getEip1193Provider();
+    return new ethers.BrowserProvider(eip1193 as any);
+  };
 
   // Initialize provider and contract
   const getContract = async () => {
     if (!isConnected) throw new Error(CONTRACT_ERRORS.Unauthorized);
-
     console.log("🔗 Initializing blockchain connection...");
-
-    // Ensure MetaMask is connected to the right network
-    const provider = new ethers.BrowserProvider(window.ethereum as any);
+    const provider = await getProvider();
     const network = await provider.getNetwork();
     console.log(
       "📡 Connected to network:",
@@ -39,8 +54,7 @@ export const usePay-StylusContract = () => {
     if (network.chainId !== BigInt(CONTRACT_CONFIG.NETWORK_ID)) {
       console.log("🔄 Wrong network detected, attempting to switch...");
       try {
-        // Try to switch to Arbitrum Sepolia
-        await window.ethereum.request({
+        await (getEip1193Provider() as any).request({
           method: "wallet_switchEthereumChain",
           params: [{ chainId: `0x${CONTRACT_CONFIG.NETWORK_ID.toString(16)}` }], // Convert to hex
         });
@@ -55,10 +69,9 @@ export const usePay-StylusContract = () => {
         );
       } catch (switchError: any) {
         if (switchError.code === 4902) {
-          // Network not added to MetaMask, let's add it
           console.log("🔧 Network not found, adding Arbitrum Sepolia...");
           try {
-            await window.ethereum.request({
+            await (getEip1193Provider() as any).request({
               method: "wallet_addEthereumChain",
               params: [
                 {
@@ -134,8 +147,8 @@ export const usePay-StylusContract = () => {
 
       // VERIFY the transaction actually exists on blockchain
       console.log("🔍 Verifying transaction on blockchain...");
-      const provider = new ethers.BrowserProvider(window.ethereum as any);
-      const verifyTx = await provider.getTransaction(tx.hash);
+      const verifyProvider = await getProvider();
+      const verifyTx = await verifyProvider.getTransaction(tx.hash);
       if (!verifyTx) {
         throw new Error(
           "Transaction not found on blockchain! This means it was only simulated locally."
@@ -257,11 +270,9 @@ export const usePay-StylusContract = () => {
       console.log("Wallet address:", address);
 
       // Check if we have enough balance first
-      const walletBalance = await window.ethereum.request({
-        method: "eth_getBalance",
-        params: [address, "latest"],
-      });
-      console.log("Wallet balance:", ethers.formatEther(walletBalance), "ETH");
+      const provider = await getProvider();
+      const bal = await provider.getBalance(address);
+      console.log("Wallet balance:", ethers.formatEther(bal), "ETH");
 
       // The subscribe function returns the subscription ID directly
       console.log("📝 Calling contract.subscribe...");
@@ -450,7 +461,7 @@ export const usePay-StylusContract = () => {
   // Get plan details by querying PlanCreated events
   const getPlanDetails = async (planId: string) => {
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum as any);
+      const provider = new ethers.JsonRpcProvider(CONTRACT_CONFIG.NETWORK_RPC_URL);
       const contract = new ethers.Contract(
         CONTRACT_CONFIG.CONTRACT_ADDRESS,
         CONTRACT_CONFIG.CONTRACT_ABI,
