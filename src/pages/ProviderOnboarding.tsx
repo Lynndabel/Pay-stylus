@@ -6,7 +6,6 @@ import { Input } from "../components/ui/Input";
 import { Select } from "../components/ui/Select";
 import { Card, CardContent, CardHeader } from "../components/ui/Card";
 import { usePayStylusContract } from "../hooks/useContract";
-import { mockApi } from "../services/mockApi";
 import { useWallet } from "../hooks/useWallet";
 
 export const ProviderOnboarding: React.FC = () => {
@@ -78,24 +77,6 @@ export const ProviderOnboarding: React.FC = () => {
       console.log("📝 Step 2: Creating plan on blockchain...");
       const planTx = await createPlan(formData.price, intervalSeconds, "");
       console.log("✅ Plan created on blockchain:", planTx.transactionHash);
-
-      // Step 3: Only after blockchain success, save to mock API for UI purposes
-      console.log("📝 Step 3: Saving metadata to local API...");
-      const provider = await mockApi.createProvider({
-        name: formData.name,
-        email: formData.email,
-        walletAddress: address!,
-      });
-
-      await mockApi.createPlan({
-        providerId: provider.id,
-        providerName: formData.name,
-        name: formData.planName,
-        description: formData.planDescription,
-        price: formData.price,
-        interval: formData.interval,
-        isActive: true,
-      });
 
       console.log("🎉 Provider registration complete!");
       navigate("/provider");

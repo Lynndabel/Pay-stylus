@@ -7,37 +7,49 @@ import { Modal } from '../components/ui/Modal';
 import { StatsCard } from '../components/StatsCard';
 import { usePayStylusContract } from '../hooks/useContract';
 import { useWallet } from '../hooks/useWallet';
-import { EscrowBalance } from '../types';
+import { EscrowBalance, Transaction } from '../types';
 
 export const Wallet: React.FC = () => {
-  const { Deposite, getUserBalance } = usePayStylusContract();
+  const { Deposite, getUserBalance, getUserTransactions } = usePayStylusContract();
 
   const { isConnected, address } = useWallet();
   const [balance, setBalance] = useState<EscrowBalance | null>(null);
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
   const [depositAmount, setDepositAmount] = useState('');
   const [loadingBalance, setLoadingBalance] = useState(true);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loadingTransactions, setLoadingTransactions] = useState(true);
 
   useEffect(() => {
-    const fetchBalance = async () => {
-      if (!isConnected) return;
+    const fetchData = async () => {
+      if (!isConnected || !address) return;
       
       try {
-        const escrowBalance = await getUserBalance();
+        setLoadingBalance(true);
+        setLoadingTransactions(true);
+
+        const [escrowBalance, txs] = await Promise.all([
+          getUserBalance(),
+          getUserTransactions(address),
+        ]);
+
         setBalance({
           total: escrowBalance,
           withdrawable: '0',
           pending: '0'
         });
+        setTransactions(txs);
       } catch (error) {
-        console.error('Failed to fetch balance:', error);
+        console.error('Failed to fetch wallet data:', error);
       } finally {
         setLoadingBalance(false);
+        setLoadingTransactions(false);
       }
     };
 
-    fetchBalance();
-  }, [isConnected, getUserBalance]);
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isConnected, address]);
 
   const handleDeposit = async () => {
     if (!depositAmount || isNaN(Number(depositAmount))) return;
@@ -47,23 +59,23 @@ export const Wallet: React.FC = () => {
       setDepositAmount('');
       setIsDepositModalOpen(false);
       
-      // Refresh balance
-      const newBalance = await getUserBalance();
-      setBalance({
-        total: newBalance,
-        withdrawable: '0',
-        pending: '0'
-      });
+      // Refresh balance and transactions
+      if (address) {
+        const [newBalance, txs] = await Promise.all([
+          getUserBalance(),
+          getUserTransactions(address),
+        ]);
+        setBalance({
+          total: newBalance,
+          withdrawable: '0',
+          pending: '0'
+        });
+        setTransactions(txs);
+      }
     } catch (error) {
       console.error('Failed to deposit:', error);
     }
   };
-
-  const recentTransactions = [
-    { type: 'deposit', amount: '+0.5 ETH', date: '2024-02-28', hash: '0x1234...abcd' },
-    { type: 'withdrawal', amount: '-0.2 ETH', date: '2024-02-27', hash: '0x5678...efgh' },
-    { type: 'deposit', amount: '+0.3 ETH', date: '2024-02-26', hash: '0x9abc...def0' },
-  ];
 
   if (!isConnected) {
     return (
@@ -153,35 +165,53 @@ export const Wallet: React.FC = () => {
                 <h2 className="text-xl font-semibold text-gray-900">Recent Transactions</h2>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {recentTransactions.map((tx, index) => (
-                    <div key={index} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
-                      <div className="flex items-center space-x-3">
-                        <div className={`p-2 rounded-lg ${
-                          tx.type === 'deposit' ? 'bg-green-100' : 'bg-blue-100'
-                        }`}>
-                          {tx.type === 'deposit' ? (
-                            <ArrowDownLeft className="w-4 h-4 text-green-600" />
-                          ) : (
-                            <ArrowUpRight className="w-4 h-4 text-blue-600" />
-                          )}
+                {loadingTransactions ? (
+                  <div className="space-y-3">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className="animate-pulse bg-gray-200 h-20 rounded" />
+                    ))}
+                  </div>
+                ) : transactions.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">No transactions yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {transactions.slice(0, 10).map((tx, index) => {
+                      const isIncoming = tx.type === 'deposit' || (tx.type === 'payment' && tx.to?.toLowerCase() === address?.toLowerCase());
+                      const icon = tx.type === 'deposit' || isIncoming ? (
+                        <ArrowDownLeft className="w-4 h-4 text-green-600" />
+                      ) : (
+                        <ArrowUpRight className="w-4 h-4 text-blue-600" />
+                      );
+                      const bgColor = tx.type === 'deposit' || isIncoming ? 'bg-green-100' : 'bg-blue-100';
+
+                      return (
+                        <div key={index} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
+                          <div className="flex items-center space-x-3">
+                            <div className={`p-2 rounded-lg ${bgColor}`}>
+                              {icon}
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-900 capitalize">{tx.type}</p>
+                              <p className="text-sm text-gray-500">{new Date(tx.timestamp).toLocaleString()}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className={`font-medium ${
+                              isIncoming ? 'text-green-600' : 'text-gray-900'
+                            }`}>
+                              {isIncoming ? '+' : '-'}{tx.amount} ETH
+                            </p>
+                            <p className="text-xs text-gray-400 font-mono">
+                              {tx.hash.slice(0, 6)}...{tx.hash.slice(-4)}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-gray-900 capitalize">{tx.type}</p>
-                          <p className="text-sm text-gray-500">{tx.date}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className={`font-medium ${
-                          tx.type === 'deposit' ? 'text-green-600' : 'text-gray-900'
-                        }`}>
-                          {tx.amount}
-                        </p>
-                        <p className="text-xs text-gray-400 font-mono">{tx.hash}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
