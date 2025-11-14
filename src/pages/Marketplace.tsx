@@ -4,7 +4,6 @@ import { PlanCard } from "../components/PlanCard";
 import { Input } from "../components/ui/Input";
 import { Button } from "../components/ui/Button";
 import { usePayStylusContract } from "../hooks/useContract";
-import { mockApi } from "../services/mockApi";
 import { Plan } from "../types";
 import { useWallet } from "../hooks/useWallet";
 
@@ -20,26 +19,16 @@ export const Marketplace: React.FC = () => {
     try {
       setLoadingPlans(true);
       console.log("🔄 Fetching plans from contract...");
-      
-      // Try to fetch from contract first
-      try {
-        const contractPlans = await getAllPlansWithDetails();
-        if (contractPlans && contractPlans.length > 0) {
-          console.log("✅ Loaded plans from contract:", contractPlans.length);
-          setPlans(contractPlans);
-          setFilteredPlans(contractPlans);
-          setLoadingPlans(false);
-          return;
-        }
-      } catch (contractError) {
-        console.warn("⚠️ Failed to fetch from contract, falling back to mock data:", contractError);
+      const contractPlans = await getAllPlansWithDetails();
+      if (contractPlans && contractPlans.length > 0) {
+        console.log("✅ Loaded plans from contract:", contractPlans.length);
+        setPlans(contractPlans);
+        setFilteredPlans(contractPlans);
+      } else {
+        console.log("ℹ️ No plans returned from contract");
+        setPlans([]);
+        setFilteredPlans([]);
       }
-
-      // Fallback to mock data if contract fetch fails
-      const allPlans = await mockApi.getPlans();
-      const activePlans = allPlans.filter((plan) => plan.isActive);
-      setPlans(activePlans);
-      setFilteredPlans(activePlans);
     } catch (error) {
       console.error("Failed to fetch plans:", error);
     } finally {

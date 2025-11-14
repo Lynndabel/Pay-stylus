@@ -6,7 +6,7 @@ import {
   CONTRACT_FUNCTIONS,
   CONTRACT_ERRORS,
 } from "../contracts/contractconfig";
-import { Plan } from "../types";
+import { Plan, RecentSubscriber, EarningsData, Transaction } from "../types";
 import { useWallet } from "./useWallet";
 import { appKit } from "../lib/reown";
 
@@ -39,6 +39,49 @@ export const usePayStylusContract = () => {
   const getProvider = async () => {
     const eip1193 = await getEip1193Provider();
     return new ethers.BrowserProvider(eip1193 as any);
+  };
+
+  // Read-only provider for event queries
+  const getReadProvider = () => {
+    // Use a single configured RPC to avoid mixed/DNS failures
+    return new ethers.JsonRpcProvider(
+      CONTRACT_CONFIG.NETWORK_RPC_URL,
+      CONTRACT_CONFIG.NETWORK_ID
+    );
+  };
+
+  // Helper to compute safe block range for event queries
+  const getRecentBlockRange = async (provider: ethers.AbstractProvider) => {
+    const latest = await provider.getBlockNumber(); // number
+    const span = 9; // strict window to satisfy free-tier (<= 10 blocks)
+    const fromBlock = latest > span ? (latest - span) : 0;
+    const toBlock = latest;
+    return { fromBlock, toBlock };
+  };
+
+  // Query logs in small chunks to satisfy strict RPC range limits (e.g., 10 blocks on free tiers)
+  const queryFilterChunked = async (
+    contract: ethers.Contract,
+    filter: any,
+    fromBlock: number,
+    toBlock: number,
+    step: number = 10
+  ) => {
+    const results: any[] = [];
+    let start = fromBlock;
+    while (start <= toBlock) {
+      const end = Math.min(start + step - 1, toBlock);
+      try {
+        const chunk = await contract.queryFilter(filter, start, end);
+        if (chunk && chunk.length) results.push(...chunk);
+      } catch (e) {
+        console.error(`queryFilter chunk failed [${start}, ${end}]`, e);
+        // Best-effort: break to avoid tight retry loops in UI
+        break;
+      }
+      start = end + 1;
+    }
+    return results;
   };
 
   // Initialize provider and contract
@@ -111,7 +154,9 @@ export const usePayStylusContract = () => {
     const signerAddress = await signer.getAddress();
     console.log("👤 Signer address:", signerAddress);
 
-    const code = await provider.getCode(CONTRACT_CONFIG.CONTRACT_ADDRESS);
+    // Use read-only RPC for contract code verification to avoid wallet RPC rate limits
+    const readProvider = getReadProvider();
+    const code = await readProvider.getCode(CONTRACT_CONFIG.CONTRACT_ADDRESS);
     if (code === "0x") {
       throw new Error("Contract not found at the specified address");
     }
@@ -466,7 +511,7 @@ export const usePayStylusContract = () => {
   // Get plan details by querying PlanCreated events
   const getPlanDetails = async (planId: string) => {
     try {
-      const provider = new ethers.JsonRpcProvider(CONTRACT_CONFIG.NETWORK_RPC_URL);
+      const provider = getReadProvider();
       const contract = new ethers.Contract(
         CONTRACT_CONFIG.CONTRACT_ADDRESS,
         CONTRACT_CONFIG.CONTRACT_ABI,
@@ -475,7 +520,8 @@ export const usePayStylusContract = () => {
 
       // Query PlanCreated events for this plan ID
       const filter = contract.filters.PlanCreated(planId);
-      const events = await contract.queryFilter(filter);
+      const { fromBlock, toBlock } = await getRecentBlockRange(provider);
+      const events = await queryFilterChunked(contract, filter, fromBlock, toBlock);
 
       if (events.length === 0) {
         return null;
@@ -506,7 +552,7 @@ export const usePayStylusContract = () => {
   // Fetch all plans with their details from contract events
   const getAllPlansWithDetails = async () => {
     try {
-      const provider = new ethers.JsonRpcProvider(CONTRACT_CONFIG.NETWORK_RPC_URL);
+      const provider = getReadProvider();
       const contract = new ethers.Contract(
         CONTRACT_CONFIG.CONTRACT_ADDRESS,
         CONTRACT_CONFIG.CONTRACT_ABI,
@@ -519,7 +565,8 @@ export const usePayStylusContract = () => {
 
       // Query all PlanCreated events
       const filter = contract.filters.PlanCreated();
-      const events = await contract.queryFilter(filter);
+      const { fromBlock, toBlock } = await getRecentBlockRange(provider);
+      const events = await queryFilterChunked(contract, filter, fromBlock, toBlock);
 
       console.log("📊 Found PlanCreated events:", events.length);
 
@@ -553,7 +600,7 @@ export const usePayStylusContract = () => {
                 price: ethers.formatEther(parsedEvent.args.price),
                 interval: interval,
                 isActive: true,
-                subscriberCount: 0, // Would need to query from subgraph
+                subscriberCount: 0, // Direct contract calls - subscriber count can be tracked via SubscriptionCreated events if needed
                 createdAt: new Date(event.blockNumber ? 0 : Date.now()).toISOString(),
               };
             }
@@ -568,9 +615,375 @@ export const usePayStylusContract = () => {
       console.log("✅ Parsed plans:", plans);
       return plans as Plan[];
     } catch (error: any) {
+      // Log the full error for debugging (RPC/network/parse issues)
       console.error("Error fetching plans with details:", error);
+      // Notify user and rethrow so UI can surface the error (no mock fallback)
       toast.error("Failed to fetch plans from contract");
       throw error;
+    }
+  };
+
+  // Get subscriptions for a specific user by querying SubscriptionCreated events
+  const getUserSubscriptions = async (userAddress: string) => {
+    try {
+      const provider = getReadProvider();
+      const contract = new ethers.Contract(
+        CONTRACT_CONFIG.CONTRACT_ADDRESS,
+        CONTRACT_CONFIG.CONTRACT_ABI,
+        provider
+      );
+
+      const filter = contract.filters.SubscriptionCreated(null, userAddress, null);
+      const { fromBlock, toBlock } = await getRecentBlockRange(provider);
+      const events = await queryFilterChunked(contract, filter, fromBlock, toBlock);
+
+      const subs = await Promise.all(
+        events.map(async (event: any) => {
+          try {
+            const parsed = contract.interface.parseLog({ topics: event.topics as string[], data: event.data });
+            if (!parsed || !parsed.args) return null;
+            const block = (await provider.getBlock(event.blockNumber)) || { timestamp: Math.floor(Date.now() / 1000) };
+            return {
+              subscriptionId: parsed.args.subscriptionId?.toString?.() ?? null,
+              planId: parsed.args.planId?.toString?.() ?? null,
+              user: parsed.args.user ?? null,
+              createdAt: new Date((block.timestamp as number) * 1000).toISOString(),
+            };
+          } catch (e) {
+            console.error("Error parsing subscription event:", e);
+            return null;
+          }
+        })
+      );
+
+      return subs.filter((s) => s !== null) as any[];
+    } catch (error: any) {
+      console.error("Error fetching user subscriptions:", error);
+      throw error;
+    }
+  };
+
+  // Get payment history for a user by querying PaymentProcessed events (from/to)
+  const getPaymentHistory = async (userAddress: string) => {
+    try {
+      const provider = getReadProvider();
+      const contract = new ethers.Contract(
+        CONTRACT_CONFIG.CONTRACT_ADDRESS,
+        CONTRACT_CONFIG.CONTRACT_ABI,
+        provider
+      );
+
+      // Filter where from == user OR to == user. We'll fetch both and merge.
+      const fromFilter = contract.filters.PaymentProcessed(userAddress, null);
+      const toFilter = contract.filters.PaymentProcessed(null, userAddress);
+
+      const { fromBlock, toBlock } = await getRecentBlockRange(provider);
+      const [fromEvents, toEvents] = await Promise.all([
+        queryFilterChunked(contract, fromFilter, fromBlock, toBlock),
+        queryFilterChunked(contract, toFilter, fromBlock, toBlock),
+      ]);
+
+      const mapEvent = async (event: any) => {
+        try {
+          const parsed = contract.interface.parseLog({ topics: event.topics as string[], data: event.data });
+          if (!parsed || !parsed.args) return null;
+          const block = (await provider.getBlock(event.blockNumber)) || { timestamp: Math.floor(Date.now() / 1000) };
+          return {
+            from: parsed.args.from ?? null,
+            to: parsed.args.to ?? null,
+            amount: parsed.args.amount ? ethers.formatEther(parsed.args.amount) : null,
+            subscriptionId: parsed.args.subscriptionId?.toString?.() ?? null,
+            timestamp: new Date((block.timestamp as number) * 1000).toISOString(),
+          };
+        } catch (e) {
+          console.error("Error parsing payment event:", e);
+          return null;
+        }
+      };
+
+      const payments = await Promise.all([
+        ...fromEvents.map(mapEvent),
+        ...toEvents.map(mapEvent),
+      ]);
+
+      return payments.filter((p) => p !== null) as any[];
+    } catch (error: any) {
+      console.error("Error fetching payment history:", error);
+      throw error;
+    }
+  };
+
+  // Get recent subscribers for a provider by querying SubscriptionCreated events
+  const getProviderRecentSubscribers = async (providerAddress: string, limit: number = 10) => {
+    try {
+      const provider = getReadProvider();
+      const contract = new ethers.Contract(
+        CONTRACT_CONFIG.CONTRACT_ADDRESS,
+        CONTRACT_CONFIG.CONTRACT_ABI,
+        provider
+      );
+
+      // First get all plans (cannot filter by non-indexed provider in topics)
+      const allPlansFilter = contract.filters.PlanCreated();
+      const { fromBlock, toBlock } = await getRecentBlockRange(provider);
+      const planEvents = await queryFilterChunked(contract, allPlansFilter, fromBlock, toBlock);
+      const providerPlanIds = planEvents
+        .map((event: any) => {
+          const parsed = contract.interface.parseLog({ topics: event.topics as string[], data: event.data });
+          const prov = parsed?.args?.provider?.toLowerCase?.();
+          if (prov !== providerAddress.toLowerCase()) return null;
+          return parsed?.args?.planId?.toString() ?? null;
+        })
+        .filter((id: string | null) => id !== null);
+
+      if (providerPlanIds.length === 0) {
+        return [];
+      }
+
+      // Get all subscription events for these plans
+      const allSubscriptions: RecentSubscriber[] = [];
+      
+      for (const planId of providerPlanIds) {
+        const subFilter = contract.filters.SubscriptionCreated(null, null, planId);
+        const subEvents = await queryFilterChunked(contract, subFilter, fromBlock, toBlock);
+        
+        for (const event of subEvents) {
+          try {
+            const parsed = contract.interface.parseLog({ topics: event.topics as string[], data: event.data });
+            if (!parsed || !parsed.args) continue;
+            
+            const block = (await provider.getBlock(event.blockNumber)) || { timestamp: Math.floor(Date.now() / 1000) };
+            
+            // Get plan details from the PlanCreated event
+            const planEvent = planEvents.find((pe: any) => {
+              const p = contract.interface.parseLog({ topics: pe.topics as string[], data: pe.data });
+              return p?.args?.planId?.toString() === planId;
+            });
+            
+            let planPrice = "0";
+            if (planEvent) {
+              const planParsed = contract.interface.parseLog({ 
+                topics: planEvent.topics as string[], 
+                data: planEvent.data 
+              });
+              planPrice = planParsed?.args?.price ? ethers.formatEther(planParsed.args.price) : "0";
+            }
+            
+            allSubscriptions.push({
+              subscriptionId: parsed.args.subscriptionId?.toString?.() ?? "",
+              planId: parsed.args.planId?.toString?.() ?? "",
+              user: parsed.args.user ?? "",
+              planName: `Plan ${parsed.args.planId?.toString?.() ?? ""}`,
+              amount: planPrice,
+              timestamp: new Date((block.timestamp as number) * 1000).toISOString(),
+            });
+          } catch (e) {
+            console.error("Error parsing subscription event:", e);
+          }
+        }
+      }
+
+      // Sort by timestamp (most recent first) and limit
+      return allSubscriptions
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .slice(0, limit);
+    } catch (error: any) {
+      console.error("Error fetching recent subscribers:", error);
+      return [];
+    }
+  };
+
+  // Get earnings data for a provider aggregated by month
+  const getProviderEarningsData = async (providerAddress: string) => {
+    try {
+      const provider = getReadProvider();
+      const contract = new ethers.Contract(
+        CONTRACT_CONFIG.CONTRACT_ADDRESS,
+        CONTRACT_CONFIG.CONTRACT_ABI,
+        provider
+      );
+
+      // Query ProviderEarnings events (cannot filter by non-indexed provider)
+      const filter = contract.filters.ProviderEarnings();
+      const { fromBlock, toBlock } = await getRecentBlockRange(provider);
+      const events = await queryFilterChunked(contract, filter, fromBlock, toBlock);
+
+      // Aggregate by month
+      const monthlyEarnings = new Map<string, number>();
+
+      for (const event of events) {
+        try {
+          const parsed = contract.interface.parseLog({ topics: event.topics as string[], data: event.data });
+          if (!parsed || !parsed.args) continue;
+          const prov = parsed.args.provider?.toLowerCase?.();
+          if (prov !== providerAddress.toLowerCase()) continue;
+
+          const block = await provider.getBlock(event.blockNumber);
+          if (!block) continue;
+
+          const date = new Date((block.timestamp as number) * 1000);
+          const monthKey = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+          
+          const amount = parseFloat(ethers.formatEther(parsed.args.amount));
+          monthlyEarnings.set(monthKey, (monthlyEarnings.get(monthKey) || 0) + amount);
+        } catch (e) {
+          console.error("Error parsing earnings event:", e);
+        }
+      }
+
+      // Convert to array and sort by date
+      const earningsData: EarningsData[] = Array.from(monthlyEarnings.entries())
+        .map(([month, earnings]) => ({ month, earnings }))
+        .sort((a, b) => {
+          const dateA = new Date(a.month);
+          const dateB = new Date(b.month);
+          return dateA.getTime() - dateB.getTime();
+        })
+        .slice(-6); // Last 6 months
+
+      return earningsData;
+    } catch (error: any) {
+      console.error("Error fetching earnings data:", error);
+      return [];
+    }
+  };
+
+  // Get all transactions for a user (deposits, withdrawals, subscriptions)
+  const getUserTransactions = async (userAddress: string) => {
+    try {
+      const provider = getReadProvider();
+      const contract = new ethers.Contract(
+        CONTRACT_CONFIG.CONTRACT_ADDRESS,
+        CONTRACT_CONFIG.CONTRACT_ABI,
+        provider
+      );
+
+      const transactions: Transaction[] = [];
+
+      // Get deposit events
+      const { fromBlock, toBlock } = await getRecentBlockRange(provider);
+
+      const depositFilter = contract.filters.EscrowDeposit(userAddress);
+      const depositEvents = await queryFilterChunked(contract, depositFilter, fromBlock, toBlock);
+      
+      for (const event of depositEvents) {
+        try {
+          const parsed = contract.interface.parseLog({ topics: event.topics as string[], data: event.data });
+          if (!parsed || !parsed.args) continue;
+          
+          const block = await provider.getBlock(event.blockNumber);
+          if (!block) continue;
+
+          transactions.push({
+            type: 'deposit',
+            amount: ethers.formatEther(parsed.args.amount),
+            timestamp: new Date((block.timestamp as number) * 1000).toISOString(),
+            hash: event.transactionHash,
+            to: userAddress,
+          });
+        } catch (e) {
+          console.error("Error parsing deposit event:", e);
+        }
+      }
+
+      // Get withdrawal events
+      const withdrawalFilter = contract.filters.EscrowWithdrawal(userAddress);
+      const withdrawalEvents = await queryFilterChunked(contract, withdrawalFilter, fromBlock, toBlock);
+      
+      for (const event of withdrawalEvents) {
+        try {
+          const parsed = contract.interface.parseLog({ topics: event.topics as string[], data: event.data });
+          if (!parsed || !parsed.args) continue;
+          
+          const block = await provider.getBlock(event.blockNumber);
+          if (!block) continue;
+
+          transactions.push({
+            type: 'withdrawal',
+            amount: ethers.formatEther(parsed.args.amount),
+            timestamp: new Date((block.timestamp as number) * 1000).toISOString(),
+            hash: event.transactionHash,
+            from: userAddress,
+          });
+        } catch (e) {
+          console.error("Error parsing withdrawal event:", e);
+        }
+      }
+
+      // Get subscription events for this user
+      const subscriptionFilter = contract.filters.SubscriptionCreated(null, userAddress);
+      const subscriptionEvents = await queryFilterChunked(contract, subscriptionFilter, fromBlock, toBlock);
+      
+      for (const event of subscriptionEvents) {
+        try {
+          const parsed = contract.interface.parseLog({ topics: event.topics as string[], data: event.data });
+          if (!parsed || !parsed.args) continue;
+          
+          const block = await provider.getBlock(event.blockNumber);
+          if (!block) continue;
+
+          // Get the plan price from PlanCreated event
+          const planFilter = contract.filters.PlanCreated(parsed.args.planId);
+          const planEvents = await queryFilterChunked(contract, planFilter, fromBlock, toBlock);
+          let planPrice = "0";
+          
+          if (planEvents.length > 0) {
+            const planParsed = contract.interface.parseLog({ 
+              topics: planEvents[0].topics as string[], 
+              data: planEvents[0].data 
+            });
+            planPrice = planParsed?.args?.price ? ethers.formatEther(planParsed.args.price) : "0";
+          }
+
+          transactions.push({
+            type: 'subscription',
+            amount: planPrice,
+            timestamp: new Date((block.timestamp as number) * 1000).toISOString(),
+            hash: event.transactionHash,
+            from: userAddress,
+          });
+        } catch (e) {
+          console.error("Error parsing subscription event:", e);
+        }
+      }
+
+      // Get payment events where user is sender or receiver
+      const paymentFromFilter = contract.filters.PaymentProcessed(userAddress, null);
+      const paymentToFilter = contract.filters.PaymentProcessed(null, userAddress);
+      
+      const [paymentFromEvents, paymentToEvents] = await Promise.all([
+        queryFilterChunked(contract, paymentFromFilter, fromBlock, toBlock),
+        queryFilterChunked(contract, paymentToFilter, fromBlock, toBlock),
+      ]);
+
+      for (const event of [...paymentFromEvents, ...paymentToEvents]) {
+        try {
+          const parsed = contract.interface.parseLog({ topics: event.topics as string[], data: event.data });
+          if (!parsed || !parsed.args) continue;
+          
+          const block = await provider.getBlock(event.blockNumber);
+          if (!block) continue;
+
+          transactions.push({
+            type: 'payment',
+            amount: ethers.formatEther(parsed.args.amount),
+            timestamp: new Date((block.timestamp as number) * 1000).toISOString(),
+            hash: event.transactionHash,
+            from: parsed.args.from,
+            to: parsed.args.to,
+          });
+        } catch (e) {
+          console.error("Error parsing payment event:", e);
+        }
+      }
+
+      // Sort by timestamp (most recent first)
+      return transactions.sort((a, b) => 
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+    } catch (error: any) {
+      console.error("Error fetching user transactions:", error);
+      return [];
     }
   };
 
@@ -583,6 +996,11 @@ export const usePayStylusContract = () => {
     processPayments,
     getAllPlans,
     getAllPlansWithDetails,
+    getUserSubscriptions,
+    getPaymentHistory,
+    getProviderRecentSubscribers,
+    getProviderEarningsData,
+    getUserTransactions,
     Deposite,
     isProviderRegistered,
     getPlanDetails,

@@ -8,53 +8,62 @@ import { Card, CardContent, CardHeader } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { usePayStylusContract } from "../hooks/useContract";
 import { useWallet } from "../hooks/useWallet";
-import { mockApi } from "../services/mockApi";
-import { Plan } from "../types";
+import { Plan, RecentSubscriber, EarningsData } from "../types";
 
 export const ProviderDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { withdrawEarnings, isLoading, getAllPlansWithDetails } =
+  const { withdrawEarnings, isLoading, getAllPlansWithDetails, getProviderRecentSubscribers, getProviderEarningsData } =
     usePayStylusContract();
   const { address } = useWallet();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loadingPlans, setLoadingPlans] = useState(true);
+  const [recentSubscribers, setRecentSubscribers] = useState<RecentSubscriber[]>([]);
+  const [loadingSubscribers, setLoadingSubscribers] = useState(true);
+  const [earningsData, setEarningsData] = useState<EarningsData[]>([]);
+  const [loadingEarnings, setLoadingEarnings] = useState(true);
 
   useEffect(() => {
-    const fetchPlans = async () => {
+    const fetchData = async () => {
+      if (!address) return;
+      
       try {
         setLoadingPlans(true);
-        console.log("🔄 Fetching plans from contract for provider dashboard...");
-        
-        // Try to fetch from contract first
-        try {
-          const contractPlans = await getAllPlansWithDetails();
-          if (contractPlans && contractPlans.length > 0) {
-            // Filter plans by current provider address
-            const providerPlans = address 
-              ? contractPlans.filter((plan) => plan.providerId.toLowerCase() === address.toLowerCase())
-              : contractPlans;
-            
-            console.log("✅ Loaded provider plans from contract:", providerPlans.length);
-            setPlans(providerPlans);
-            setLoadingPlans(false);
-            return;
-          }
-        } catch (contractError) {
-          console.warn("⚠️ Failed to fetch from contract, falling back to mock data:", contractError);
-        }
+        setLoadingSubscribers(true);
+        setLoadingEarnings(true);
+        console.log("🔄 Fetching dashboard data from contract...");
 
-        // Fallback to mock data if contract fetch fails
-        const allPlans = await mockApi.getPlans();
-        setPlans(allPlans);
+        const [contractPlans, subscribers, earnings] = await Promise.all([
+          getAllPlansWithDetails(),
+          getProviderRecentSubscribers(address, 10),
+          getProviderEarningsData(address),
+        ]);
+
+        const providerPlans = contractPlans.filter(
+          (plan) => plan.providerId.toLowerCase() === address.toLowerCase()
+        );
+
+        console.log("✅ Loaded provider plans from contract:", providerPlans.length);
+        console.log("✅ Loaded recent subscribers from contract:", subscribers.length);
+        console.log("✅ Loaded earnings data from contract:", earnings.length);
+        
+        setPlans(providerPlans);
+        setRecentSubscribers(subscribers);
+        setEarningsData(earnings);
       } catch (error) {
-        console.error("Failed to fetch plans:", error);
+        console.error("Failed to fetch dashboard data:", error);
+        setPlans([]);
+        setRecentSubscribers([]);
+        setEarningsData([]);
       } finally {
         setLoadingPlans(false);
+        setLoadingSubscribers(false);
+        setLoadingEarnings(false);
       }
     };
 
-    fetchPlans();
-  }, [getAllPlansWithDetails, address]);
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [address]);
 
   // Deactivate plan not supported in current contract hook; hiding deactivate UI
 
@@ -74,34 +83,6 @@ export const ProviderDashboard: React.FC = () => {
     (sum, plan) => sum + plan.subscriberCount,
     0
   );
-
-  // Mock recent subscribers data
-  const recentSubscribers = [
-    {
-      address: "0x742d35Cc...5bFe37",
-      plan: "Premium Dev Tools",
-      date: "2024-02-28",
-      amount: "0.05",
-    },
-    {
-      address: "0x8ba1f109...9c4b3a",
-      plan: "Analytics Pro",
-      date: "2024-02-27",
-      amount: "0.1",
-    },
-    {
-      address: "0x3e14dc7a...2d8f91",
-      plan: "Premium Dev Tools",
-      date: "2024-02-26",
-      amount: "0.05",
-    },
-    {
-      address: "0x9f8e2b1c...7a5d4e",
-      plan: "Annual Enterprise",
-      date: "2024-02-25",
-      amount: "0.5",
-    },
-  ];
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -161,7 +142,7 @@ export const ProviderDashboard: React.FC = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <EarningsChart />
+                <EarningsChart data={earningsData} loading={loadingEarnings} />
               </CardContent>
             </Card>
 
@@ -173,47 +154,59 @@ export const ProviderDashboard: React.FC = () => {
                 </h2>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-gray-200">
-                        <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">
-                          Address
-                        </th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">
-                          Plan
-                        </th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">
-                          Date
-                        </th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">
-                          Amount
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {recentSubscribers.map((subscriber, index) => (
-                        <tr
-                          key={index}
-                          className="border-b border-gray-100 hover:bg-gray-50"
-                        >
-                          <td className="py-3 px-4 text-sm text-gray-900 font-mono">
-                            {subscriber.address}
-                          </td>
-                          <td className="py-3 px-4 text-sm text-gray-700">
-                            {subscriber.plan}
-                          </td>
-                          <td className="py-3 px-4 text-sm text-gray-500">
-                            {new Date(subscriber.date).toLocaleDateString()}
-                          </td>
-                          <td className="py-3 px-4 text-sm font-medium text-gray-900">
-                            {subscriber.amount} ETH
-                          </td>
+                {loadingSubscribers ? (
+                  <div className="space-y-3">
+                    {[...Array(4)].map((_, i) => (
+                      <div key={i} className="animate-pulse bg-gray-200 h-16 rounded" />
+                    ))}
+                  </div>
+                ) : recentSubscribers.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">No subscribers yet</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-gray-200">
+                          <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">
+                            Address
+                          </th>
+                          <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">
+                            Plan
+                          </th>
+                          <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">
+                            Date
+                          </th>
+                          <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">
+                            Amount
+                          </th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {recentSubscribers.map((subscriber, index) => (
+                          <tr
+                            key={index}
+                            className="border-b border-gray-100 hover:bg-gray-50"
+                          >
+                            <td className="py-3 px-4 text-sm text-gray-900 font-mono">
+                              {subscriber.user.slice(0, 6)}...{subscriber.user.slice(-4)}
+                            </td>
+                            <td className="py-3 px-4 text-sm text-gray-700">
+                              {subscriber.planName}
+                            </td>
+                            <td className="py-3 px-4 text-sm text-gray-500">
+                              {new Date(subscriber.timestamp).toLocaleDateString()}
+                            </td>
+                            <td className="py-3 px-4 text-sm font-medium text-gray-900">
+                              {subscriber.amount} ETH
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

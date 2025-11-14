@@ -38,10 +38,33 @@ export interface EscrowBalance {
 }
 
 export interface PaymentHistory {
-  id: string;
+  from: string;
+  to: string;
+  amount: string;
+  subscriptionId: string;
+  timestamp: string;
+  txHash?: string;
+}
+
+export interface RecentSubscriber {
+  subscriptionId: string;
+  planId: string;
+  user: string;
   planName: string;
   amount: string;
-  date: string;
-  status: 'success' | 'failed' | 'pending';
-  txHash?: string;
+  timestamp: string;
+}
+
+export interface EarningsData {
+  month: string;
+  earnings: number;
+}
+
+export interface Transaction {
+  type: 'deposit' | 'withdrawal' | 'subscription' | 'payment';
+  amount: string;
+  timestamp: string;
+  hash: string;
+  from?: string;
+  to?: string;
 }

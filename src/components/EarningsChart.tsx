@@ -1,20 +1,36 @@
 import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
+import { EarningsData } from '../types/index';
 
-const mockData = [
-  { month: 'Jan', earnings: 2.1 },
-  { month: 'Feb', earnings: 3.5 },
-  { month: 'Mar', earnings: 2.8 },
-  { month: 'Apr', earnings: 4.2 },
-  { month: 'May', earnings: 5.1 },
-  { month: 'Jun', earnings: 6.3 },
-];
+interface EarningsChartProps {
+  data?: EarningsData[];
+  loading?: boolean;
+}
 
-export const EarningsChart: React.FC = () => {
+export const EarningsChart: React.FC<EarningsChartProps> = ({ data = [], loading = false }) => {
+  if (loading) {
+    return (
+      <div className="h-64 flex items-center justify-center">
+        <div className="animate-pulse text-gray-400">Loading earnings data...</div>
+      </div>
+    );
+  }
+
+  if (data.length === 0) {
+    return (
+      <div className="h-64 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-500">No earnings data available yet</p>
+          <p className="text-sm text-gray-400 mt-2">Start earning by creating plans and getting subscribers</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-64">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={mockData}>
+        <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis 
             dataKey="month" 
