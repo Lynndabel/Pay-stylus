@@ -43,7 +43,7 @@ export const usePayStylusContract = () => {
 
   // Read-only provider for event queries
   const getReadProvider = () => {
-    // Use a single configured RPC to avoid mixed/DNS failures
+    // Use a single configured RPC to avoid DNS failures
     return new ethers.JsonRpcProvider(
       CONTRACT_CONFIG.NETWORK_RPC_URL,
       CONTRACT_CONFIG.NETWORK_ID
@@ -52,7 +52,7 @@ export const usePayStylusContract = () => {
 
   // Helper to compute safe block range for event queries
   const getRecentBlockRange = async (provider: ethers.AbstractProvider) => {
-    const latest = await provider.getBlockNumber(); // number
+    const latest = await provider.getBlockNumber(); 
     const span = 9; // strict window to satisfy free-tier (<= 10 blocks)
     const fromBlock = latest > span ? (latest - span) : 0;
     const toBlock = latest;
