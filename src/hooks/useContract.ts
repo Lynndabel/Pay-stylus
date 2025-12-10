@@ -106,7 +106,7 @@ export const usePayStylusContract = () => {
           method: "wallet_switchEthereumChain",
           params: [{ chainId: `0x${CONTRACT_CONFIG.NETWORK_ID.toString(16)}` }],
         });
-        console.log("✅ Network switched successfully");
+        console.log(" Network switched successfully");
         const newNetwork = await provider.getNetwork();
         console.log(
           "📡 Now connected to:",
