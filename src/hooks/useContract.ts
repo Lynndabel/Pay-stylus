@@ -266,10 +266,10 @@ export const usePayStylusContract = () => {
 
       const receipt = await tx.wait();
       console.log("Plan creation confirmed!");
-      console.log("📋 Receipt:", receipt);
+      console.log("Receipt:", receipt);
 
       // VERIFY the transaction actually exists on blockchain
-      console.log("🔍 Verifying transaction on blockchain...");
+      console.log("Verifying transaction on blockchain...");
       const provider = new ethers.BrowserProvider(window.ethereum as any);
       const verifyTx = await provider.getTransaction(tx.hash);
       if (!verifyTx) {
@@ -278,14 +278,14 @@ export const usePayStylusContract = () => {
         );
       }
       console.log(
-        "✅ Transaction verified on blockchain:",
+        "Transaction verified on blockchain:",
         verifyTx.blockNumber
       );
 
       toast.success("Plan created successfully!");
       return receipt;
     } catch (error: any) {
-      console.error("❌ Plan creation failed:", error);
+      console.error("Plan creation failed:", error);
       console.error("Error details:", {
         message: error.message,
         reason: error.reason,
