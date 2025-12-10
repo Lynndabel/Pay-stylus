@@ -176,22 +176,22 @@ export const usePayStylusContract = () => {
       console.log(" Getting contract for provider registration...");
       const contract = await getContract();
 
-      console.log("📋 Contract details:");
+      console.log("Contract details:");
       console.log("  - Address:", contract.target);
       console.log("  - Function:", CONTRACT_FUNCTIONS.ProviderRegister);
       console.log("  - Provider name:", name);
 
-      console.log("📤 Sending registration transaction...");
+      console.log("Sending registration transaction...");
       const tx = await contract[CONTRACT_FUNCTIONS.ProviderRegister](name, {
         gasLimit: 300000, // Add explicit gas limit
       });
 
-      console.log("✅ Transaction sent:", tx.hash);
-      console.log("⏳ Waiting for confirmation...");
+      console.log("Transaction sent:", tx.hash);
+      console.log("Waiting for confirmation...");
 
       const receipt = await tx.wait();
-      console.log("🎉 Provider registration confirmed!");
-      console.log("📋 Receipt:", receipt);
+      console.log("Provider registration confirmed!");
+      console.log("Receipt:", receipt);
 
       // VERIFY the transaction actually exists on blockchain
       console.log("🔍 Verifying transaction on blockchain...");
