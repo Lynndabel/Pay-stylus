@@ -106,17 +106,17 @@ export const usePayStylusContract = () => {
           method: "wallet_switchEthereumChain",
           params: [{ chainId: `0x${CONTRACT_CONFIG.NETWORK_ID.toString(16)}` }],
         });
-        console.log("✅ Network switched successfully");
+        console.log(" Network switched successfully");
         const newNetwork = await provider.getNetwork();
         console.log(
-          "📡 Now connected to:",
+          " Now connected to:",
           newNetwork.name,
           "Chain ID:",
           newNetwork.chainId.toString()
         );
       } catch (switchError: any) {
         if (switchError.code === 4902) {
-          console.log("🔧 Network not found, adding Arbitrum Sepolia...");
+          console.log(" Network not found, adding Arbitrum Sepolia...");
           try {
             await (eip1193 as any).request?.({
               method: "wallet_addEthereumChain",
@@ -173,28 +173,28 @@ export const usePayStylusContract = () => {
   const registerProvider = async (name: string) => {
     setIsLoading(true);
     try {
-      console.log("🔗 Getting contract for provider registration...");
+      console.log("Getting contract for provider registration...");
       const contract = await getContract();
 
-      console.log("📋 Contract details:");
+      console.log("Contract details:");
       console.log("  - Address:", contract.target);
       console.log("  - Function:", CONTRACT_FUNCTIONS.ProviderRegister);
       console.log("  - Provider name:", name);
 
-      console.log("📤 Sending registration transaction...");
+      console.log("Sending registration transaction...");
       const tx = await contract[CONTRACT_FUNCTIONS.ProviderRegister](name, {
         gasLimit: 300000, // Add explicit gas limit
       });
 
-      console.log("✅ Transaction sent:", tx.hash);
-      console.log("⏳ Waiting for confirmation...");
+      console.log("Transaction sent:", tx.hash);
+      console.log("Waiting for confirmation...");
 
       const receipt = await tx.wait();
-      console.log("🎉 Provider registration confirmed!");
-      console.log("📋 Receipt:", receipt);
+      console.log("Provider registration confirmed!");
+      console.log("Receipt:", receipt);
 
       // VERIFY the transaction actually exists on blockchain
-      console.log("🔍 Verifying transaction on blockchain...");
+      console.log("Verifying transaction on blockchain...");
       const verifyProvider = await getProvider();
       const verifyTx = await verifyProvider.getTransaction(tx.hash);
       if (!verifyTx) {
@@ -203,14 +203,14 @@ export const usePayStylusContract = () => {
         );
       }
       console.log(
-        "✅ Transaction verified on blockchain:",
+        "Transaction verified on blockchain:",
         verifyTx.blockNumber
       );
 
       toast.success("Provider registered successfully!");
       return tx;
     } catch (error: any) {
-      console.error("❌ Provider registration failed:", error);
+      console.error("Provider registration failed:", error);
       console.error("Error details:", {
         message: error.message,
         reason: error.reason,
@@ -240,18 +240,18 @@ export const usePayStylusContract = () => {
   ) => {
     setIsLoading(true);
     try {
-      console.log("🔗 Getting contract for plan creation...");
+      console.log("Getting contract for plan creation...");
       const contract = await getContract();
       const priceWei = ethers.parseEther(price); // Convert ETH to Wei
 
-      console.log("📋 Plan creation details:");
+      console.log("Plan creation details:");
       console.log("  - Price (ETH):", price);
       console.log("  - Price (Wei):", priceWei.toString());
       console.log("  - Interval (seconds):", interval);
       console.log("  - Metadata hash:", metadataHash);
       console.log("  - Function:", CONTRACT_FUNCTIONS.CreatePlan);
 
-      console.log("📤 Sending plan creation transaction...");
+      console.log("Sending plan creation transaction...");
       const tx = await contract[CONTRACT_FUNCTIONS.CreatePlan](
         priceWei,
         interval,
@@ -261,15 +261,15 @@ export const usePayStylusContract = () => {
         }
       );
 
-      console.log("✅ Transaction sent:", tx.hash);
-      console.log("⏳ Waiting for confirmation...");
+      console.log("Transaction sent:", tx.hash);
+      console.log("Waiting for confirmation...");
 
       const receipt = await tx.wait();
-      console.log("🎉 Plan creation confirmed!");
-      console.log("📋 Receipt:", receipt);
+      console.log("Plan creation confirmed!");
+      console.log("Receipt:", receipt);
 
       // VERIFY the transaction actually exists on blockchain
-      console.log("🔍 Verifying transaction on blockchain...");
+      console.log("Verifying transaction on blockchain...");
       const provider = new ethers.BrowserProvider(window.ethereum as any);
       const verifyTx = await provider.getTransaction(tx.hash);
       if (!verifyTx) {
@@ -278,14 +278,14 @@ export const usePayStylusContract = () => {
         );
       }
       console.log(
-        "✅ Transaction verified on blockchain:",
+        "Transaction verified on blockchain:",
         verifyTx.blockNumber
       );
 
       toast.success("Plan created successfully!");
       return receipt;
     } catch (error: any) {
-      console.error("❌ Plan creation failed:", error);
+      console.error("Plan creation failed:", error);
       console.error("Error details:", {
         message: error.message,
         reason: error.reason,
@@ -312,7 +312,7 @@ export const usePayStylusContract = () => {
     setIsLoading(true);
     try {
       const contract = await getContract();
-      console.log("🎯 Starting subscription process...");
+      console.log("Starting subscription process...");
       console.log("Plan ID:", planId, "Price:", price);
       console.log("Contract address:", CONTRACT_CONFIG.CONTRACT_ADDRESS);
       console.log("Wallet address:", address);
@@ -325,7 +325,7 @@ export const usePayStylusContract = () => {
       }
 
       // The subscribe function returns the subscription ID directly
-      console.log("📝 Calling contract.subscribe...");
+      console.log("Calling contract.subscribe...");
       console.log("Function name:", CONTRACT_FUNCTIONS.Subscribe);
       console.log("Parameters:", { planId, value: ethers.parseEther(price) });
 
@@ -334,10 +334,10 @@ export const usePayStylusContract = () => {
         gasLimit: 500000, // Add explicit gas limit
       });
 
-      console.log("✅ Transaction sent:", tx.hash);
-      console.log("⏳ Waiting for confirmation...");
+      console.log("Transaction sent:", tx.hash);
+      console.log(" Waiting for confirmation...");
       const receipt = await tx.wait();
-      console.log("✅ Transaction confirmed:", receipt);
+      console.log(" Transaction confirmed:", receipt);
 
       // Try to get subscription ID from events (if available)
       let subscriptionId = null;
@@ -355,7 +355,7 @@ export const usePayStylusContract = () => {
 
             if (parsed && parsed.name === "SubscriptionCreated") {
               subscriptionId = parsed.args.subscriptionId?.toString();
-              console.log("✅ Found subscription ID:", subscriptionId);
+              console.log(" Found subscription ID:", subscriptionId);
               break;
             }
           } catch (e) {
@@ -382,7 +382,7 @@ export const usePayStylusContract = () => {
 
       return { tx, subscriptionId, receipt };
     } catch (error: any) {
-      console.error("❌ Subscription failed:", error);
+      console.error(" Subscription failed:", error);
       console.error("Error details:", {
         message: error.message,
         reason: error.reason,
@@ -561,14 +561,14 @@ export const usePayStylusContract = () => {
 
       // First get all plan IDs
       const planIds = await contract[CONTRACT_FUNCTIONS.AllPlans]();
-      console.log("📋 Found plan IDs:", planIds);
+      console.log(" Found plan IDs:", planIds);
 
       // Query all PlanCreated events
       const filter = contract.filters.PlanCreated();
       const { fromBlock, toBlock } = await getRecentBlockRange(provider);
       const events = await queryFilterChunked(contract, filter, fromBlock, toBlock);
 
-      console.log("📊 Found PlanCreated events:", events.length);
+      console.log(" Found PlanCreated events:", events.length);
 
       // Map events to plan details
       const plans = events
@@ -612,7 +612,7 @@ export const usePayStylusContract = () => {
         })
         .filter((plan: any) => plan !== null) as Plan[];
 
-      console.log("✅ Parsed plans:", plans);
+      console.log(" Parsed plans:", plans);
       return plans as Plan[];
     } catch (error: any) {
       // Log the full error for debugging (RPC/network/parse issues)
