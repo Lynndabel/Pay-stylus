@@ -109,14 +109,14 @@ export const usePayStylusContract = () => {
         console.log(" Network switched successfully");
         const newNetwork = await provider.getNetwork();
         console.log(
-          "📡 Now connected to:",
+          " Now connected to:",
           newNetwork.name,
           "Chain ID:",
           newNetwork.chainId.toString()
         );
       } catch (switchError: any) {
         if (switchError.code === 4902) {
-          console.log("🔧 Network not found, adding Arbitrum Sepolia...");
+          console.log(" Network not found, adding Arbitrum Sepolia...");
           try {
             await (eip1193 as any).request?.({
               method: "wallet_addEthereumChain",
@@ -173,7 +173,7 @@ export const usePayStylusContract = () => {
   const registerProvider = async (name: string) => {
     setIsLoading(true);
     try {
-      console.log("🔗 Getting contract for provider registration...");
+      console.log(" Getting contract for provider registration...");
       const contract = await getContract();
 
       console.log("📋 Contract details:");
