@@ -312,7 +312,7 @@ export const usePayStylusContract = () => {
     setIsLoading(true);
     try {
       const contract = await getContract();
-      console.log("🎯 Starting subscription process...");
+      console.log("Starting subscription process...");
       console.log("Plan ID:", planId, "Price:", price);
       console.log("Contract address:", CONTRACT_CONFIG.CONTRACT_ADDRESS);
       console.log("Wallet address:", address);
@@ -325,7 +325,7 @@ export const usePayStylusContract = () => {
       }
 
       // The subscribe function returns the subscription ID directly
-      console.log("📝 Calling contract.subscribe...");
+      console.log("Calling contract.subscribe...");
       console.log("Function name:", CONTRACT_FUNCTIONS.Subscribe);
       console.log("Parameters:", { planId, value: ethers.parseEther(price) });
 
@@ -334,7 +334,7 @@ export const usePayStylusContract = () => {
         gasLimit: 500000, // Add explicit gas limit
       });
 
-      console.log("✅ Transaction sent:", tx.hash);
+      console.log("Transaction sent:", tx.hash);
       console.log("⏳ Waiting for confirmation...");
       const receipt = await tx.wait();
       console.log("✅ Transaction confirmed:", receipt);
