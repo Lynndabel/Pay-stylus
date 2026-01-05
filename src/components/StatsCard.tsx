@@ -21,28 +21,38 @@ export const StatsCard: React.FC<StatsCardProps> = ({
   trend,
 }) => {
   return (
-    <Card>
-      <CardContent>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-600">{title}</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
-            {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
+    <Card className="hover:shadow-lg transition-shadow duration-200">
+      <CardContent className="p-4 sm:p-5 lg:p-6">
+        <div className="flex items-start justify-between gap-3 sm:gap-4">
+          <div className="flex-1 min-w-0">
+            <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">
+              {title}
+            </p>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mt-1 sm:mt-1.5 truncate">
+              {value}
+            </p>
+            {subtitle && (
+              <p className="text-xs sm:text-sm text-gray-500 mt-1 line-clamp-2">
+                {subtitle}
+              </p>
+            )}
             {trend && (
-              <div className="flex items-center mt-2">
+              <div className="flex flex-wrap items-center gap-1 mt-2">
                 <span
-                  className={`text-sm font-medium ${
+                  className={`text-xs sm:text-sm font-semibold ${
                     trend.isPositive ? 'text-green-600' : 'text-red-600'
                   }`}
                 >
-                  {trend.isPositive ? '+' : ''}{trend.value}
+                  {trend.isPositive ? '↑' : '↓'} {trend.isPositive ? '+' : ''}{trend.value}
                 </span>
-                <span className="text-sm text-gray-500 ml-1">vs last month</span>
+                <span className="text-xs sm:text-sm text-gray-500">
+                  vs last month
+                </span>
               </div>
             )}
           </div>
-          <div className="p-3 bg-gray-50 rounded-lg">
-            <Icon className="w-6 h-6 text-gray-600" />
+          <div className="flex-shrink-0 p-2.5 sm:p-3 bg-gradient-to-br from-cyan-50 to-teal-50 rounded-lg sm:rounded-xl">
+            <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-600" />
           </div>
         </div>
       </CardContent>
